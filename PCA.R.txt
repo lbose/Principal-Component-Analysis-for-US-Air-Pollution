@@ -1,0 +1,146 @@
+#read the air pollution data
+
+usair<-source("C:\\Documents and Settings\\compcart\\My Documents\\Multivariate\\Everitt\\RSPCMA\\Data\\chap3usair.dat")$value
+usair
+
+#set up the plotting area to get 6 graphs in a 2x3 layout
+par(mfrow=c(2,3),pty="s")
+plot(Neg.Temp,SO2,lwd=2)
+identify(Neg.Temp,SO2,row.names(usair))
+abline(lm(SO2~Neg.Temp),lwd=2)
+plot(Manuf,SO2,lwd=2)
+identify(Manuf,SO2,row.names(usair))
+abline(lm(SO2~Manuf),lwd=2)
+plot(Pop,SO2,lwd=2)
+identify(Pop,SO2,row.names(usair))
+abline(lm(SO2~Pop),lwd=2)
+plot(Wind,SO2,lwd=2)
+identify(Wind,SO2,row.names(usair))
+abline(lm(SO2~Wind),lwd=2)
+plot(Precip,SO2,lwd=2)
+identify(Precip,SO2,row.names(usair))
+abline(lm(SO2~Precip),lwd=2)
+plot(Days,SO2,lwd=2)
+identify(Days,SO2,row.names(usair))
+abline(lm(SO2~Days),lwd=2)
+
+
+#script for scatterplot matrix with histogram on diagonals
+pairs(cbind(Neg.Temp,Manuf,Pop,Wind,Precip,Days), panel=function(x,y)
+ {points(x,y)
+ abline(lm(y~x), lty=2)},
+ diag.panel=function(x)
+ {par(new=T)
+ hist(x,main="",axes=F,nclass=10)})
+
+#principal components analysis
+
+usair.pc <- princomp(usair[,-1],cor=TRUE) 
+summary(usair.pc, loadings=TRUE)
+
+names(usair.pc)
+
+#plotting the principal components
+
+par(mfrow=c(1,2),pty="s")
+plot(usair.pc$scores[,1],usair.pc$scores[,2],
+ylim=range(usair.pc$scores[,1]),
+xlab="PC1",ylab="PC2",type="n",lwd=2)
+text(usair.pc$scores[,1],usair.pc$scores[,2],
+labels=abbreviate(row.names(usair)),cex=0.7,lwd=2)
+#
+#
+plot(usair.pc$scores[,1],usair.pc$scores[,3],
+ylim=range(usair.pc$scores[,1]),
+xlab="PC1",ylab="PC3",type="n",lwd=2)
+text(usair.pc$scores[,1],usair.pc$scores[,3],
+labels=abbreviate(row.names(usair)),cex=0.7,lwd=2)
+
+attach(usair.pc)
+
+summary(lm(SO2~usair.pc$scores[,1]+usair.pc$scores[,2]+
+usair.pc$scores[,3]))
+
+#use the robust estimator of the covariance matrix
+
+options(digits=2) # print only 2 decimals for the correlation matrix
+library(MASS)
+usair.mve<-cov.mve(usair[,-1],cor=TRUE)
+names(usair.mve)
+usair.mve$cor
+
+#do a principal component analysis using the robust covariance matrix obtained above
+
+usair.pcmve<-princomp(usair[,-1],covlist=usair.mve,cor=TRUE)
+summary(usair.pcmve,loadings=TRUE)
+
+attach(usair.mvepc)
+summary(lm(SO2~usair.mvepc$scores[,1]+usair.mvepc$scores[,2]+
+usair.mvepc$scores[,3]))
+
+#do a principal component analysis using the robust covariance matrix obtained above
+#use cov.mve function and scores=T
+
+usair.pc1<-princomp(usair[,-1],covmat=cov.mve(usair[,-1]),cor=TRUE,scores=T)
+#print the principal component results with robust covariance matrix
+summary(usair.pc1,loadings=TRUE)
+
+#merge the original data and PC scores
+usair <- cbind(usair.dat, usair.pc1$scores)
+
+#check the names of the PC components
+names(usair)
+
+#fit the regression on the new PC scores
+summary(lm(SO2~Comp.1+Comp.2+Comp.3,data=usair))
+
+
+
+
+
+
+
+
+#remove outlier Chicago and redo analysis
+
+usair.c <- usair[-11,]
+
+#compute correlation matrix on all variables except SO2
+cor(usair.c[,-1])
+
+#principal components analysis
+
+usair.c.pc <- princomp(usair.c[,-1],cor=TRUE) 
+summary(usair.c.pc, loadings=TRUE)
+
+
+#plotting the principal components
+
+par(pty="s")
+plot(usair.c.pc$scores[,1],usair.c.pc$scores[,2],
+ylim=range(usair.c.pc$scores[,1]),
+xlab="PC1",ylab="PC2",type="n",lwd=2)
+text(usair.c.pc$scores[,1],usair.c.pc$scores[,2],
+labels=abbreviate(row.names(usair.c)),cex=0.7,lwd=2)
+#
+#
+plot(usair.c.pc$scores[,1],usair.c.pc$scores[,3],
+ylim=range(usair.c.pc$scores[,1]),
+xlab="PC1",ylab="PC3",type="n",lwd=2)
+text(usair.c.pc$scores[,1],usair.c.pc$scores[,3],
+labels=abbreviate(row.names(usair.c)),cex=0.7,lwd=2)
+#
+
+#principal component regression
+#first attach te data
+
+attach(usair.c)
+
+summary(lm(SO2~usair.c.pc$scores[,1]+usair.c.pc$scores[,2]+
+usair.c.pc$scores[,3]))
+
+
+#biplot
+
+usair.pc <- princomp(usair[,-1],cor=TRUE)
+biplot(usair.pc) 
